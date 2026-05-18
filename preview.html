@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jointly — layout preview</title>
+
+<!--
+  Standalone diagnostic. Open this file directly in a browser.
+  No build, no React, no Vite — just the CSS shape and a working hover-reveal.
+
+  Files in this folder:
+    preview.html         (this file)
+    laptop-frame.jpg
+    dashboard-screen.png (the screen content, cropped out of your dashboard mockup)
+
+  If the rendered page here looks like your reference mockups (centered
+  headline, centered toggle, full laptop frame visible with screenshot
+  inside, pagination below, hover-reveal annotations), the CSS is correct
+  and the issue in your Vite app is the file-replacement step — your
+  ScreenFrame.tsx is still the original, not v2.3. Open
+  `src/components/ScreenFrame.tsx` in your editor and confirm the first
+  10 lines match what's in this drop's ScreenFrame.tsx.
+-->
+
+<style>
+:root {
+  --font-display: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  --color-bg: #ffffff;
+  --color-text: #0e0f12;
+  --color-text-muted: #5b5d68;
+  --color-text-soft: #8c8e98;
+  --color-line: rgba(14, 15, 18, 0.08);
+  --color-line-strong: rgba(14, 15, 18, 0.14);
+  --color-accent: #6d28d9;
+
+  --radius-pill: 999px;
+  --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --screen-left: 13.750%;
+  --screen-top: 9.018%;
+  --screen-width: 73.250%;
+  --screen-height: 79.292%;
+
+  --annotation-gutter: 260px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-display);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv11';
+}
+
+.app {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 32px 72px;
+  overflow-x: hidden;
+}
+
+.app__atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 50% at 50% 100%,
+    rgba(214, 200, 250, 0.08) 0%, transparent 60%);
+}
+
+.app__title {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.1vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+  color: var(--color-text);
+  text-align: center;
+  margin: 0 0 32px;
+  max-width: 760px;
+  text-wrap: balance;
+}
+
+.annotation-toggle {
+  position: relative;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px;
+  margin: 0 auto 56px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 2px 12px rgba(20, 20, 40, 0.05);
+}
+
+.annotation-toggle__btn {
+  display: inline-flex;
+  padding: 10px 22px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 220ms var(--ease-out-quart), color 220ms var(--ease-out-quart);
+}
+
+.annotation-toggle__btn--active {
+  background: #fff;
+  color: var(--color-text);
+  box-shadow: 0 1px 2px rgba(20, 20, 40, 0.06);
+}
+
+.annotation-toggle__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-line);
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.screen-frame-stage {
+  position: relative;
+  width: min(96vw, 1500px);
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  --annotation-budget: 0px;
+}
+
+.screen-frame-stage[data-annotations='true'] {
+  --annotation-budget: calc(var(--annotation-gutter) * 2);
+}
+
+.screen-frame {
+  position: relative;
+  width: min(calc(96vw - var(--annotation-budget)), 1200px);
+  aspect-ratio: 2400 / 1497;
+  margin: 0 auto;
+  transition: width 0.55s var(--ease-out-quart);
+}
+
+.screen-frame__chrome {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  object-fit: contain;
+}
+
+.screen-frame__screen {
+  position: absolute;
+  left: var(--screen-left);
+  top: var(--screen-top);
+  width: var(--screen-width);
+  height: var(--screen-height);
+  overflow: hidden;
+  z-index: 2;
+  background: #fff;
+}
+
+.screen-frame__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.screen-frame__hotspots {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.hotspot-dot {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 50%;
+}
+
+.hotspot-dot__core {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.95), 0 2px 8px rgba(109, 40, 217, 0.35);
+  transition: transform 220ms var(--ease-out-quart), box-shadow 220ms var(--ease-out-quart);
+  z-index: 1;
+}
+
+.hotspot-dot__pulse {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  opacity: 0.35;
+  animation: hotspot-pulse 2.4s var(--ease-out-quart) infinite;
+}
+
+.hotspot-dot:hover .hotspot-dot__core,
+.hotspot-dot--active .hotspot-dot__core {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 4px #fff, 0 0 0 7px rgba(109, 40, 217, 0.22),
+              0 4px 12px rgba(109, 40, 217, 0.40);
+}
+
+.hotspot-dot--active .hotspot-dot__pulse {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes hotspot-pulse {
+  0%   { transform: scale(0.85); opacity: 0.45; }
+  60%, 100% { transform: scale(2.0); opacity: 0; }
+}
+
+.annotation-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.annotation-layer__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.annotation-layer__line {
+  fill: none;
+  stroke: rgba(45, 27, 105, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  transition: opacity 280ms var(--ease-out-quart);
+}
+
+.annotation-layer__line--active { opacity: 1; }
+
+.annotation-card {
+  position: absolute;
+  width: 240px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  box-shadow: 0 12px 28px rgba(20, 20, 40, 0.10);
+  opacity: 0;
+  transform: translateY(4px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-out-quart), transform 300ms var(--ease-out-quart);
+  z-index: 7;
+}
+
+.annotation-card--active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.annotation-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: -0.015em;
+  margin: 0 0 4px;
+  line-height: 1.35;
+}
+
+.annotation-card__body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.pagination {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 56px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 2px 12px rgba(20, 20, 40, 0.05);
+}
+
+.pagination__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-line-strong);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.pagination__dot--active {
+  width: 44px;
+  border-radius: 4px;
+  background: rgba(14, 15, 18, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.pagination__dot--active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 15, 18, 0.45);
+  transform-origin: left center;
+  border-radius: 4px;
+  animation: dot-progress 8s linear forwards;
+}
+
+@keyframes dot-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(14, 15, 18, 0.06);
+  color: var(--color-text);
+  border: 0;
+  cursor: pointer;
+  transition: background 200ms var(--ease-out-quart);
+}
+
+.pagination__btn:hover { background: rgba(14, 15, 18, 0.12); }
+.pagination__btn svg { width: 12px; height: 12px; fill: currentColor; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="app__atmosphere"></div>
+
+  <h1 class="app__title">Creating operational visibility across active deals</h1>
+
+  <div class="annotation-toggle" role="group" aria-label="Toggle annotations">
+    <button type="button" class="annotation-toggle__btn" id="show-btn">Show annotations</button>
+    <span class="annotation-toggle__divider" aria-hidden="true"></span>
+    <button type="button" class="annotation-toggle__btn annotation-toggle__btn--active" id="hide-btn">Hide annotations</button>
+  </div>
+
+  <div class="stage">
+    <div class="screen-frame-stage" id="stage" data-annotations="false">
+      <div class="screen-frame">
+        <img src="laptop-frame.jpg" alt="" class="screen-frame__chrome" draggable="false" />
+        <div class="screen-frame__screen">
+          <img src="dashboard-screen.png" alt="" class="screen-frame__image" draggable="false" />
+
+          <div class="screen-frame__hotspots" id="hotspots" style="display:none">
+            <button class="hotspot-dot" data-id="a1" style="left:55%; top:7%;">
+              <span class="hotspot-dot__pulse" aria-hidden="true"></span>
+              <span class="hotspot-dot__core">1</span>
+            </button>
+            <button class="hotspot-dot" data-id="a2" style="left:50%; top:36%;">
+              <span class="hotspot-dot__pulse" aria-hidden="true"></span>
+              <span class="hotspot-dot__core">2</span>
+            </button>
+            <button class="hotspot-dot" data-id="a3" style="left:86%; top:32%;">
+              <span class="hotspot-dot__pulse" aria-hidden="true"></span>
+              <span class="hotspot-dot__core">3</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation-layer" id="annotation-layer" style="display:none">
+        <svg class="annotation-layer__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <line class="annotation-layer__line" data-id="a1" x1="1" y1="18" x2="50" y2="13" />
+          <line class="annotation-layer__line" data-id="a2" x1="1" y1="54" x2="48" y2="38" />
+          <line class="annotation-layer__line" data-id="a3" x1="83.5" y1="34" x2="80" y2="35" />
+        </svg>
+
+        <div class="annotation-card" data-id="a1" style="left:1%; top:14%;">
+          <h3 class="annotation-card__title">Priority before workload</h3>
+          <p class="annotation-card__body">The day's most consequential moment leads the screen, ahead of any open task or deal.</p>
+        </div>
+        <div class="annotation-card" data-id="a2" style="left:1%; top:50%;">
+          <h3 class="annotation-card__title">Mapped to how deals are tracked</h3>
+          <p class="annotation-card__body">Kanban states mirror the working model agents already use — no new vocabulary to learn.</p>
+        </div>
+        <div class="annotation-card" data-id="a3" style="left:83.5%; top:30%;">
+          <h3 class="annotation-card__title">One unified activity stream</h3>
+          <p class="annotation-card__body">Replaces scattered tool notifications with a single feed of what moved on which deal.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pagination" aria-label="Slide navigation">
+    <div class="pagination__dots">
+      <button class="pagination__dot pagination__dot--active" aria-label="Slide 1, active"></button>
+      <button class="pagination__dot" aria-label="Slide 2"></button>
+      <button class="pagination__dot" aria-label="Slide 3"></button>
+      <button class="pagination__dot" aria-label="Slide 4"></button>
+      <button class="pagination__dot" aria-label="Slide 5"></button>
+      <button class="pagination__dot" aria-label="Slide 6"></button>
+    </div>
+    <button type="button" class="pagination__btn" aria-label="Pause">
+      <svg viewBox="0 0 12 14" aria-hidden="true">
+        <rect x="1" y="1" width="3" height="12" rx="1"></rect>
+        <rect x="8" y="1" width="3" height="12" rx="1"></rect>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  // Toggle annotations on / off
+  const showBtn = document.getElementById('show-btn');
+  const hideBtn = document.getElementById('hide-btn');
+  const hotspots = document.getElementById('hotspots');
+  const annotationLayer = document.getElementById('annotation-layer');
+  const stage = document.getElementById('stage');
+
+  function setAnnotations(visible) {
+    showBtn.classList.toggle('annotation-toggle__btn--active', visible);
+    hideBtn.classList.toggle('annotation-toggle__btn--active', !visible);
+    hotspots.style.display = visible ? '' : 'none';
+    annotationLayer.style.display = visible ? '' : 'none';
+    stage.setAttribute('data-annotations', visible ? 'true' : 'false');
+    if (!visible) clearActive();
+  }
+  showBtn.addEventListener('click', () => setAnnotations(true));
+  hideBtn.addEventListener('click', () => setAnnotations(false));
+
+  // Hover-reveal: open the matching card + connector when a hotspot is hovered/focused
+  const dots = hotspots.querySelectorAll('.hotspot-dot');
+  const cards = annotationLayer.querySelectorAll('.annotation-card');
+  const lines = annotationLayer.querySelectorAll('.annotation-layer__line');
+  let closeTimer = null;
+
+  function clearActive() {
+    dots.forEach(d => d.classList.remove('hotspot-dot--active'));
+    cards.forEach(c => c.classList.remove('annotation-card--active'));
+    lines.forEach(l => l.classList.remove('annotation-layer__line--active'));
+  }
+
+  function open(id) {
+    clearTimeout(closeTimer);
+    clearActive();
+    dots.forEach(d => { if (d.dataset.id === id) d.classList.add('hotspot-dot--active'); });
+    cards.forEach(c => { if (c.dataset.id === id) c.classList.add('annotation-card--active'); });
+    lines.forEach(l => { if (l.dataset.id === id) l.classList.add('annotation-layer__line--active'); });
+  }
+
+  function closeAfterDelay() {
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(clearActive, 130);
+  }
+
+  dots.forEach(dot => {
+    dot.addEventListener('mouseenter', () => open(dot.dataset.id));
+    dot.addEventListener('focus', () => open(dot.dataset.id));
+    dot.addEventListener('mouseleave', closeAfterDelay);
+    dot.addEventListener('blur', closeAfterDelay);
+  });
+  cards.forEach(card => {
+    card.addEventListener('mouseenter', () => clearTimeout(closeTimer));
+    card.addEventListener('mouseleave', clearActive);
+  });
+</script>
+</body>
+</html>
